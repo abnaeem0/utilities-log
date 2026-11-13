@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0f5c55">
+<title>Meter Log</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f5c55'/%3E%3Cpath d='M36 8 18 36h12l-3 20 19-30H34z' fill='%23ffd166'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f3f1ec; --card:#fff; --ink:#1c2422; --mute:#66706d; --line:#d9d6ce;
+  --accent:#0f5c55; --accent-ink:#fff; --warn:#a85c00; --warn-bg:#fff3d6; --bad:#b3261e; --bad-bg:#fde7e4; --ok:#1b6e3c; --ok-bg:#e1f3e7;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121716; --card:#1c2422; --ink:#eef1ef; --mute:#9aa5a1; --line:#34403d;
+    --accent:#3fb5a8; --accent-ink:#06211e; --warn:#ffc266; --warn-bg:#3d2c0a; --bad:#ff9a91; --bad-bg:#44191a; --ok:#84d9a3; --ok-bg:#143322;}
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:0 16px calc(24px + env(safe-area-inset-bottom));}
+main{max-width:520px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 12px}
+h1{font-size:20px;margin:0;letter-spacing:-.01em}
+h2{font-size:15px;margin:0 0 10px;font-weight:650}
+.date{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--mute)}
+.date input{font:inherit;font-size:16px;font-weight:600;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.f{display:block;min-width:0}
+label.f>span{display:block;font-size:13px;font-weight:600;color:var(--mute);margin-bottom:4px}
+.f input{width:100%;font:inherit;font-size:22px;font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);
+  background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px 10px;min-height:52px}
+.f input:focus,textarea:focus,.date input:focus{outline:none;border-color:var(--accent)}
+.f.warn input{border-color:var(--warn);background:var(--warn-bg)}
+.f.bad input{border-color:var(--bad);background:var(--bad-bg)}
+.last{font-size:12.5px;color:var(--mute);margin-top:5px;font-variant-numeric:tabular-nums;min-height:18px}
+.hint{font-size:12.5px;margin-top:2px;min-height:18px;font-variant-numeric:tabular-nums;color:var(--ok);font-weight:600}
+.warn .hint{color:var(--warn)} .bad .hint{color:var(--bad)}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+  min-height:46px;padding:8px 14px;font-weight:600}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.55}
+.swap{width:100%;margin-top:10px;font-size:14px;min-height:40px;color:var(--accent)}
+.swap.suggest{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.linkbtn{border:none;background:none;color:var(--accent);min-height:36px;padding:4px 0;font-size:14px;text-decoration:underline}
+.rooms{display:flex;align-items:center;gap:10px}
+.rooms button{width:52px;font-size:24px;line-height:1}
+.rooms input{width:84px;text-align:center}
+.rooms .of{color:var(--mute);font-size:15px}
+textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px;min-height:46px;resize:vertical}
+.row{display:flex;gap:10px} .row>*{flex:1}
+.primary{width:100%;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:18px;min-height:56px;margin-top:4px}
+.msg{border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14.5px;font-weight:550}
+.msg.ok{background:var(--ok-bg);color:var(--ok)} .msg.bad{background:var(--bad-bg);color:var(--bad)} .msg.info{background:var(--card);color:var(--mute);border:1px solid var(--line)}
+.small{font-size:13px;color:var(--mute)}
+.hist{margin-top:10px}
+.hist table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.hist td{padding:3px 0} .hist td:last-child{text-align:right;font-weight:600}
+.hist .h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hist .item{border-top:1px solid var(--line);padding:10px 0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;padding:12px;z-index:5}
+.sheet{background:var(--card);border-radius:18px;padding:18px;width:100%;max-width:520px;max-height:85vh;overflow:auto}
+.sheet ul{margin:8px 0 14px;padding-left:20px} .sheet li{margin-bottom:6px}
+[hidden]{display:none!important}
+input[type=file]{display:none}
+details summary{cursor:pointer;color:var(--accent);font-weight:600;margin:10px 0}
+.setup input{width:100%;font:inherit;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);margin:4px 0 10px}
+</style>
+</head>
+<body>
+<main>
+
+<!-- First-time setup -->
+<section id="setup" hidden>
+  <header><h1>Meter Log</h1></header>
+  <div class="card setup">
+    <h2>This phone is not set up yet</h2>
+    <p class="small">Ask the owner for the setup link and open it once on this phone.</p>
+    <details>
+      <summary>Enter details by hand</summary>
+      <label class="small">Web app URL<input id="su" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <label class="small">Access key<input id="sk" autocomplete="off"></label>
+      <button class="primary" id="sgo">Save</button>
+    </details>
+  </div>
+</section>
+
+<!-- Entry form -->
+<section id="app" hidden>
+  <header>
+    <h1>Meter Log</h1>
+    <label class="date">Reading for
+      <input type="date" id="date">
+    </label>
+  </header>
+
+  <div id="msg" class="msg info" role="status">Loading…</div>
+
+  <div class="card">
+    <h2 id="n1">Meter 1</h2>
+    <div class="pair">
+      <label class="f" id="f-m1p"><span>Peak</span><input id="m1p" inputmode="decimal" autocomplete="off" enterkeyhint="next"><div class="last"></div><div class="hint"></div></label>
+      <label class="f" id="f-m1o"><span>Off-peak</span><input id="m1o" inputmode="decimal" autocomplete="off" enterkeyhint="next"><div class="last"></div><div class="hint"></div></label>
+    </div>
+    <button class="swap" id="swap1" type="button">⇄ Swap peak and off-peak</button>
+  </div>
+
+  <div class="card">
+    <h2 id="n2">Meter 2</h2>
+    <div class="pair">
+      <label class="f" id="f-m2p"><span>Peak</span><input id="m2p" inputmode="decimal" autocomplete="off" enterkeyhint="next"><div class="last"></div><div class="hint"></div></label>
+      <label class="f" id="f-m2o"><span>Off-peak</span><input id="m2o" inputmode="decimal" autocomplete="off" enterkeyhint="next"><div class="last"></div><div class="hint"></div></label>
+    </div>
+    <button class="swap" id="swap2" type="button">⇄ Swap peak and off-peak</button>
+    <button class="linkbtn" id="swapm" type="button">Entered under the wrong meter? Swap meters</button>
+  </div>
+
+  <div class="card">
+    <h2>Rooms occupied tonight</h2>
+    <div class="rooms f" id="f-rooms">
+      <button type="button" id="rminus" aria-label="One fewer">−</button>
+      <input id="rooms" inputmode="numeric" autocomplete="off" aria-label="Rooms occupied tonight">
+      <button type="button" id="rplus" aria-label="One more">+</button>
+      <span class="of" id="rof"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Photos and note <span class="small">(optional)</span></h2>
+    <div class="row">
+      <button type="button" id="bcam">Take photo</button>
+      <button type="button" id="bfile">Add from phone</button>
+    </div>
+    <div class="small" id="pstat" style="margin:8px 0 10px"></div>
+    <textarea id="note" rows="1" placeholder="Note, e.g. meter fault, generator ran"></textarea>
+    <input type="file" id="cam" accept="image/*" capture="environment">
+    <input type="file" id="file" accept="image/*,audio/*" multiple>
+  </div>
+
+  <button class="primary" id="save" type="button">Save</button>
+
+  <div class="card hist" style="margin-top:12px">
+    <button type="button" id="bhist" style="width:100%">Show last 3 entries</button>
+    <div id="hist" hidden></div>
+  </div>
+</section>
+
+<div class="overlay" id="confirm" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ct">
+    <h2 id="ct">Please check before saving</h2>
+    <ul id="clist"></ul>
+    <div class="row">
+      <button type="button" id="cback">Go back and fix</button>
+      <button type="button" id="cgo" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">Save anyway</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<script>
+(function(){
+'use strict';
+var F = ['m1p','m1o','m2p','m2o'];
+var LABEL = {m1p:'Meter 1 peak', m1o:'Meter 1 off-peak', m2p:'Meter 2 peak', m2o:'Meter 2 off-peak'};
+var CFG_KEY = 'meterlog.cfg', DRAFT = 'meterlog.draft.';
+var $ = function(id){ return document.getElementById(id); };
+var cfg = null, st = null, busy = false, uploading = 0;
+
+/* ---------- storage ---------- */
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { localStorage.removeItem(k); } catch(e){} }
+
+/* ---------- setup link:  …/#s=<base64url of {"u":url,"k":key}> ---------- */
+function readSetupLink(){
+  var m = location.hash.match(/[#&]s=([A-Za-z0-9_\-]+)/);
+  if (!m) return;
+  try {
+    var b = m[1].replace(/-/g,'+').replace(/_/g,'/'); while (b.length % 4) b += '=';
+    var o = JSON.parse(atob(b));
+    if (o && o.k && /^https:\/\/script\.google\.com\//.test(o.u)) lsSet(CFG_KEY, JSON.stringify({u:o.u, k:o.k}));
+  } catch(e){}
+  try { history.replaceState(null, '', location.pathname + location.search); } catch(e){ location.hash = ''; }
+}
+function loadCfg(){
+  try { var o = JSON.parse(lsGet(CFG_KEY) || 'null'); if (o && o.u && o.k) return o; } catch(e){}
+  return null;
+}
+
+/* ---------- dates (always Pakistan time) ---------- */
+function pkParts(d){
+  var p = {}; new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Karachi', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', hourCycle:'h23'})
+    .formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
+  return p;
+}
+function shift(ds, n){ var a = ds.split('-'); var d = new Date(Date.UTC(+a[0], a[1]-1, +a[2] + n)); return d.toISOString().slice(0,10); }
+function defaultDate(){ // a reading typed in after midnight still belongs to the evening before
+  var p = pkParts(new Date()), ds = p.year + '-' + p.month + '-' + p.day;
+  return (+p.hour < 5) ? shift(ds, -1) : ds;
+}
+function dayDiff(a,b){ var x=a.split('-'), y=b.split('-'); return Math.round((Date.UTC(+y[0],y[1]-1,+y[2]) - Date.UTC(+x[0],x[1]-1,+x[2]))/864e5); }
+function nice(ds){ var a = ds.split('-'); return new Date(Date.UTC(+a[0],a[1]-1,+a[2])).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}); }
+function fmt(n){ return (n === null || n === undefined) ? '' : String(Math.round(n*100)/100); }
+
+/* ---------- API ---------- */
+function api(action, data){
+  var body = Object.assign({key: cfg.k, action: action}, data || {});
+  return fetch(cfg.u, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body)})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j.ok && j.error === 'key'){ lsDel(CFG_KEY); showSetup('The access key was changed. Open the new setup link.'); throw new Error('key'); }
+      if (!j.ok) throw new Error(j.error || 'Server error');
+      return j;
+    });
+}
+
+/* ---------- UI helpers ---------- */
+function msg(kind, text){ var m = $('msg'); m.className = 'msg ' + kind; m.textContent = text; m.hidden = !text; }
+function showSetup(note){
+  $('app').hidden = true; $('setup').hidden = false;
+  if (note) $('setup').querySelector('p').textContent = note;
+}
+function val(id){ // null = empty, NaN = not a number
+  var s = $(id).value.replace(/[,\s]/g,''); if (s === '') return null;
+  return /^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
+}
+function setBusy(b){ busy = b; $('save').disabled = b; $('date').disabled = b; }
+
+/* ---------- drafts: nothing typed is lost if the page closes ---------- */
+function saveDraft(){
+  if (!st) return;
+  var d = {rooms: $('rooms').value, note: $('note').value}; F.forEach(function(f){ d[f] = $(f).value; });
+  lsSet(DRAFT + st.date, JSON.stringify(d));
+}
+function clearOldDrafts(keep){
+  try { for (var i = localStorage.length - 1; i >= 0; i--){ var k = localStorage.key(i); if (k && k.indexOf(DRAFT) === 0 && k !== DRAFT + keep) localStorage.removeItem(k); } } catch(e){}
+}
+
+/* ---------- checks ---------- */
+function check(){
+  var issues = [], v = {}, days = {};
+  F.forEach(function(f, i){
+    var box = $('f-' + f), hint = box.querySelector('.hint'), p = st && st.prev[i];
+    v[f] = val(f); box.className = 'f'; hint.textContent = '';
+    if (v[f] === null) return;
+    if (isNaN(v[f])){ box.className = 'f bad'; hint.textContent = 'Numbers only'; issues.push({f:f, block:true, t: LABEL[f] + ' is not a number.'}); return; }
+    if (!p) return;
+    var d = v[f] - p.value, n = Math.max(1, dayDiff(p.date, st.date)); days[f] = n;
+    var per = d / n, typ = st.typical[i];
+    hint.textContent = (d >= 0 ? '+' : '') + fmt(d) + (n > 1 ? ' in ' + n + ' days' : '');
+    if (d < 0){
+      box.className = 'f bad'; hint.textContent = 'Lower than last time';
+      issues.push({f:f, t: LABEL[f] + ' (' + fmt(v[f]) + ') is lower than the last reading (' + fmt(p.value) + '). Meters only go up.'});
+    } else if (typ !== null && per > typ * st.jump && per - typ > 5){
+      box.className = 'f warn'; hint.textContent = '+' + fmt(d) + ' · much more than usual';
+      issues.push({f:f, t: LABEL[f] + ' went up by ' + fmt(d) + '. Usual is about ' + fmt(typ) + ' a day.'});
+    } else if (d === 0){
+      box.className = 'f warn'; hint.textContent = 'Same as last time';
+      issues.push({f:f, t: LABEL[f] + ' has not changed since the last reading.'});
+    }
+  });
+
+  // Peak and off-peak typed into each other's box?
+  [['m1p','m1o',0,'swap1'], ['m2p','m2o',2,'swap2']].forEach(function(m){
+    var a = v[m[0]], b = v[m[1]], pa = st && st.prev[m[2]], pb = st && st.prev[m[2]+1], btn = $(m[3]), sug = false;
+    if (a !== null && b !== null && !isNaN(a) && !isNaN(b) && pa && pb){
+      var straight = Math.abs(a - pa.value) + Math.abs(b - pb.value), crossed = Math.abs(a - pb.value) + Math.abs(b - pa.value);
+      sug = crossed < straight && (a < pa.value || b < pb.value);
+    }
+    btn.className = 'swap' + (sug ? ' suggest' : '');
+    btn.textContent = sug ? '⇄ These look swapped. Tap to swap' : '⇄ Swap peak and off-peak';
+    if (sug) issues.push({t: (m[2] ? 'Meter 2' : 'Meter 1') + ' peak and off-peak look swapped.'});
+  });
+
+  // Whole meters typed under each other?
+  var all = F.every(function(f){ return v[f] !== null && !isNaN(v[f]); }) && st && st.prev.every(function(p){ return !!p; }), msug = false;
+  if (all){
+    var pv = st.prev.map(function(p){ return p.value; });
+    var s1 = Math.abs(v.m1p-pv[0]) + Math.abs(v.m1o-pv[1]) + Math.abs(v.m2p-pv[2]) + Math.abs(v.m2o-pv[3]);
+    var s2 = Math.abs(v.m1p-pv[2]) + Math.abs(v.m1o-pv[3]) + Math.abs(v.m2p-pv[0]) + Math.abs(v.m2o-pv[1]);
+    msug = s2 < s1 && F.some(function(f,i){ return v[f] < pv[i]; });
+  }
+  $('swapm').textContent = msug ? 'Meter 1 and Meter 2 look swapped. Tap to swap meters' : 'Entered under the wrong meter? Swap meters';
+  $('swapm').style.color = msug ? 'var(--warn)' : '';
+  if (msug) issues.push({t: 'Meter 1 and Meter 2 look swapped.'});
+
+  // Rooms
+  var r = val('rooms'), rb = $('f-rooms'); rb.className = 'rooms f';
+  if (r !== null && (isNaN(r) || r % 1 !== 0)){ rb.className = 'rooms f bad'; issues.push({block:true, t:'Rooms must be a whole number.'}); }
+  else if (r !== null && st && r > st.totalRooms){ rb.className = 'rooms f warn'; issues.push({t:'Rooms occupied (' + r + ') is more than the ' + st.totalRooms + ' rooms we have.'}); }
+  return {issues: issues, v: v, rooms: r};
+}
+
+/* ---------- render ---------- */
+function render(useDraft){
+  $('n1').textContent = st.names[0]; $('n2').textContent = st.names[1];
+  LABEL = {m1p: st.names[0]+' peak', m1o: st.names[0]+' off-peak', m2p: st.names[1]+' peak', m2o: st.names[1]+' off-peak'};
+  $('rof').textContent = 'of ' + st.totalRooms;
+  $('date').value = st.date;
+  F.forEach(function(f, i){
+    var p = st.prev[i];
+    $('f-' + f).querySelector('.last').textContent = p ? 'Last: ' + fmt(p.value) + ' (' + nice(p.date) + ')' : 'No earlier reading';
+  });
+  if (useDraft){
+    var d = null; try { d = JSON.parse(lsGet(DRAFT + st.date) || 'null'); } catch(e){}
+    if (d && !F.concat(['rooms','note']).some(function(k){ return d[k]; })) d = null;
+    var e = st.entry;
+    F.forEach(function(f, i){ $(f).value = d ? (d[f] || '') : (e ? fmt(e.v[i]) : ''); });
+    $('rooms').value = d ? (d.rooms || '') : (e && e.rooms !== null ? e.rooms : '');
+    $('note').value = d ? (d.note || '') : (e ? e.note : '');
+    if (d) msg('info', 'Unsaved numbers from earlier are filled in. Check them and press ' + (e ? 'Update' : 'Save') + '.');
+    else if (e) msg('ok', nice(st.date) + ' is already saved. Change anything and press Update.');
+    else msg('', '');
+  }
+  $('save').textContent = st.entry ? 'Update' : 'Save';
+  photoStat();
+  renderHist();
+  check();
+}
+function photoStat(extra){
+  var t = st.photos ? st.photos + ' file' + (st.photos > 1 ? 's' : '') + ' saved for ' + nice(st.date) + '.' : 'Photos are kept with the day’s reading. No sorting needed.';
+  $('pstat').textContent = extra || t;
+}
+function renderHist(){
+  var h = $('hist'); h.textContent = '';
+  if (!st.history.length){ h.appendChild(document.createTextNode('No entries yet.')); h.className = 'small'; h.style.marginTop = '10px'; return; }
+  h.className = ''; h.style.marginTop = '';
+  st.history.forEach(function(e){
+    var item = document.createElement('div'); item.className = 'item';
+    var head = document.createElement('div'); head.className = 'h';
+    var b = document.createElement('strong'); b.textContent = nice(e.date); head.appendChild(b);
+    var ed = document.createElement('button'); ed.type = 'button'; ed.textContent = 'Edit'; ed.style.minHeight = '38px';
+    ed.addEventListener('click', function(){ load(e.date); window.scrollTo({top:0, behavior:'smooth'}); });
+    head.appendChild(ed); item.appendChild(head);
+    var t = document.createElement('table');
+    var rows = F.map(function(f, i){ return [LABEL[f], e.v[i] === null ? '—' : fmt(e.v[i])]; });
+    rows.push(['Rooms occupied', e.rooms === null ? '—' : e.rooms]);
+    rows.forEach(function(r){ var tr = t.insertRow(); tr.insertCell().textContent = r[0]; tr.insertCell().textContent = r[1]; });
+    item.appendChild(t);
+    if (e.note){ var n = document.createElement('div'); n.className = 'small'; n.textContent = 'Note: ' + e.note; item.appendChild(n); }
+    h.appendChild(item);
+  });
+}
+
+/* ---------- load / save ---------- */
+function load(date){
+  setBusy(true); msg('info', 'Loading…');
+  return api('status', {date: date}).then(function(j){ st = j; clearOldDrafts(st.date); render(true); })
+    .catch(function(e){ if (e.message !== 'key') msg('bad', 'Could not load. Check the internet and try again.'); $('date').value = st ? st.date : date; })
+    .then(function(){ setBusy(false); });
+}
+function trySave(){
+  if (busy || !st) return;
+  var c = check(), list = c.issues.slice();
+  var blocked = list.filter(function(i){ return i.block; });
+  if (blocked.length){ msg('bad', blocked[0].t); window.scrollTo({top:0, behavior:'smooth'}); return; }
+  var blanks = F.filter(function(f){ return c.v[f] === null; }).map(function(f){ return LABEL[f]; });
+  if (blanks.length === 4){ msg('bad', 'Enter at least one reading.'); window.scrollTo({top:0, behavior:'smooth'}); return; }
+  if (blanks.length) list.push({t: 'Left empty: ' + blanks.join(', ') + '.'});
+  if (c.rooms === null) list.push({t: 'Rooms occupied is empty.'});
+  if (!list.length) return doSave(c, '');
+  var ul = $('clist'); ul.textContent = '';
+  list.forEach(function(i){ var li = document.createElement('li'); li.textContent = i.t; ul.appendChild(li); });
+  $('confirm').hidden = false;
+  $('cgo').onclick = function(){ $('confirm').hidden = true; doSave(c, list.map(function(i){ return i.t; }).join(' | ')); };
+}
+function doSave(c, flags){
+  setBusy(true); msg('info', 'Saving…');
+  var body = {date: st.date, rooms: c.rooms, note: $('note').value.trim(), flags: flags};
+  F.forEach(function(f){ body[f] = c.v[f]; });
+  api('save', body).then(function(j){
+    lsDel(DRAFT + st.date); st = j; render(true);
+    msg('ok', 'Saved ✓  ' + nice(st.date) + ' at ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}));
+  }).catch(function(e){
+    if (e.message !== 'key') msg('bad', 'Not saved. Check the internet and press Save again. Your numbers are still here.');
+  }).then(function(){ setBusy(false); window.scrollTo({top:0, behavior:'smooth'}); });
+}
+
+/* ---------- photos / audio ---------- */
+function readB64(blob){
+  return new Promise(function(res, rej){ var r = new FileReader(); r.onload = function(){ res(String(r.result).split(',')[1]); }; r.onerror = rej; r.readAsDataURL(blob); });
+}
+function shrink(file){ // photos are scaled to 1600px so uploads stay small
+  return new Promise(function(res){
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      c.toBlob(function(b){ res(b ? {blob:b, mime:'image/jpeg', name: file.name.replace(/\.\w+$/, '') + '.jpg'} : null); }, 'image/jpeg', 0.82);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+function upload(files){
+  if (!st || !files.length) return;
+  var list = Array.prototype.slice.call(files), date = st.date, done = 0, failed = 0;
+  uploading += list.length;
+  var next = function(){
+    if (!list.length){
+      uploading = 0;
+      return api('status', {date: st.date}).then(function(j){ st.photos = j.photos; photoStat(failed ? failed + ' could not be uploaded. Try again.' : null); }).catch(function(){});
+    }
+    var f = list.shift();
+    photoStat('Uploading ' + (done + failed + 1) + '…');
+    var prep = /^image\//.test(f.type) ? shrink(f) : Promise.resolve(null);
+    return prep.then(function(s){
+      var blob = s ? s.blob : f, mime = s ? s.mime : (f.type || 'application/octet-stream'), name = s ? s.name : f.name;
+      if (blob.size > 15e6) throw new Error('too big');
+      return readB64(blob).then(function(b64){ return api('photo', {date: date, name: name, mime: mime, data: b64}); });
+    }).then(function(){ done++; }, function(){ failed++; }).then(next);
+  };
+  next();
+}
+
+/* ---------- wiring ---------- */
+function swap(a, b){ var t = $(a).value; $(a).value = $(b).value; $(b).value = t; }
+function start(){
+  readSetupLink();
+  cfg = loadCfg();
+  if (!cfg) return showSetup();
+  $('setup').hidden = true; $('app').hidden = false;
+
+  F.concat(['rooms','note']).forEach(function(id){ $(id).addEventListener('input', function(){ if (st){ check(); saveDraft(); } }); });
+  $('swap1').addEventListener('click', function(){ swap('m1p','m1o'); check(); saveDraft(); });
+  $('swap2').addEventListener('click', function(){ swap('m2p','m2o'); check(); saveDraft(); });
+  $('swapm').addEventListener('click', function(){ swap('m1p','m2p'); swap('m1o','m2o'); check(); saveDraft(); });
+  $('rminus').addEventListener('click', function(){ var r = val('rooms'); $('rooms').value = Math.max(0, (isNaN(r) || r === null ? 1 : r) - 1); check(); saveDraft(); });
+  $('rplus').addEventListener('click', function(){ var r = val('rooms'); $('rooms').value = Math.min(st ? st.totalRooms : 99, (isNaN(r) || r === null ? 0 : r) + 1); check(); saveDraft(); });
+  $('date').addEventListener('change', function(){ if ($('date').value) load($('date').value); });
+  $('save').addEventListener('click', trySave);
+  $('cback').addEventListener('click', function(){ $('confirm').hidden = true; });
+  $('bhist').addEventListener('click', function(){ var h = $('hist'); h.hidden = !h.hidden; $('bhist').textContent = h.hidden ? 'Show last 3 entries' : 'Hide entries'; });
+  $('bcam').addEventListener('click', function(){ $('cam').click(); });
+  $('bfile').addEventListener('click', function(){ $('file').click(); });
+  ['cam','file'].forEach(function(id){ $(id).addEventListener('change', function(e){ upload(e.target.files); e.target.value = ''; }); });
+  $('date').max = shift(defaultDate(), 1);
+  load(defaultDate());
+}
+$('sgo').addEventListener('click', function(){
+  var u = $('su').value.trim(), k = $('sk').value.trim();
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u) || !k) return alert('Check the URL (it ends in /exec) and the key.');
+  lsSet(CFG_KEY, JSON.stringify({u:u, k:k})); location.reload();
+});
+start();
+})();
+</script>
+</body>
+</html>
