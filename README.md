@@ -49,4 +49,25 @@ Notes on the Analysis tab:
 ## Changing things later
 
 - **Lost phone or staff change:** change the Access key in Settings, then make a new setup link.
-- **Changed `Code.gs`:** Deploy > Manage deployments > edit > Version: New version. The URL stays the same.
+- **Changed `Code.gs`:** paste the new file into the Apps Script editor, then Deploy > Manage deployments > edit > Version: New version. The URL stays the same. Saving alone does not update the live web app.
+
+## Publishing changes (keep the branches in sync)
+
+There are two branches and one copy in Google, and each has to be updated separately:
+
+| What | Where it lives | How it goes live |
+| --- | --- | --- |
+| Source of truth | `main` branch | Commit here first |
+| The live page | `gh-pages` branch | GitHub Pages serves this branch, not `main` |
+| The sheet backend | The Apps Script project attached to the Google Sheet | Not updated by git at all |
+
+After every change to `main`, copy it to `gh-pages`:
+
+```
+git push origin main
+git push origin main:gh-pages
+```
+
+A change to `index.html` is only live after the second push. A change to `Code.gs` also needs the Apps Script step above. If the page and the script are changed together, update the script first so the page never calls something the backend does not have yet.
+
+To drop the second branch, set Settings > Pages > Source to `main` / root in the GitHub repo and delete `gh-pages`.
